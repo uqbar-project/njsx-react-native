@@ -76,9 +76,18 @@ export default {
     apply(_, previous) { return previous },
   } as Rule,
 
+  IGNORE_BOOLEANS: {
+    appliesTo(arg) { return typeof arg === 'boolean' },
+    apply(_, previous) { return previous },
+  } as Rule,
+
   IGNORE_UNDEFINED: {
     appliesTo(arg) { return arg === undefined },
     apply(_, previous) { return previous },
   } as Rule,
 
+  APPLY_REFINEMENTS: {
+    appliesTo(arg) { return typeof arg === 'function' },
+    apply(arg, state) { return (arg as (s: BuilderState<any>) => BuilderState<any>)(state) },
+  } as Rule,
 }

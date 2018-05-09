@@ -10,11 +10,11 @@ export interface NJSX {
 
 export type BuilderRefinement<P extends object> = (state: BuilderState<P>) => BuilderState<P>
 export type BuilderArgument<P extends object>
-  = boolean
+  = BuilderRefinement<P>
   | null
   | undefined
-  | BuilderRefinement<P>
-  | Builder<any>
+  | boolean
+  | (() => ReactElement<any>)
   | ReactChild
   | Partial<P>
   | BuilderArgumentArray<P>
