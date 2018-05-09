@@ -120,7 +120,7 @@ describe('NJSX', () => {
 
     it('should be refinable by functional refinements', () => {
       njsx.rules = [Rules.APPLY_REFINEMENTS]
-      const foo = ({ props, children }: BuilderState<any>) => ({ props: { ...props, className: 'foo' }, children })
+      const foo = ({ props }: BuilderState<any>) => ({ props: { ...props, className: 'foo' } })
       const component = njsx('div')(foo)()
 
       expect(component).to.deep.equal(<div className='foo' />)
@@ -144,11 +144,6 @@ describe('NJSX', () => {
       const component = njsx('div')['.bar']['baz qux']()
 
       expect(component).to.deep.equal(<div className='bar baz qux' />)
-    })
-
-    it('should not be refinable by dynamic messages if a handler is not defined', () => {
-      njsx.dynamicSelectorHandler = undefined
-      expect(() => njsx('div').bar).to.throw(TypeError)
     })
 
     it('should not be refinable by dynamic messages after the component is built', () => {

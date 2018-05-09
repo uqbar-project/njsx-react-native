@@ -1,16 +1,19 @@
-import { Attributes, createElement, ReactChild, ReactElement, ReactNode, ReactType } from 'react'
+import { createElement, ReactChild, ReactElement, ReactNode, ReactType } from 'react'
 
 const { isArray } = Array
 
+// TODO: Hacía falta el Attributes en Attributes & { children?: ReactNode[] } & P ?
+
 export interface NJSX {
-  <P>(type: ReactType<P>, props?: Partial<P & Attributes>, ...children: Array<ReactNode | Builder<any>>): Builder<P>
-  rules?: Rule[]
-  dynamicSelectorHandler?: <P>(arg: BuilderArgument<P>, current: BuilderState<{}>) => BuilderState<{}>
+  <P>(type: ReactType<P>): Builder<P>
+
+  rules: Rule[]
+  dynamicSelectorHandler: <P>(arg: BuilderArgument<P>, current: BuilderState<P>) => BuilderState<P>
 }
 
 
 export interface Builder<P> {
-  (): ReactElement<P>,
+  (): ReactElement<{ children?: ReactNode[] } & P>,
   (head: BuilderArgument<P>, ...tail: Array<BuilderArgument<P>>): Builder<P>
   [key: string]: Builder<P>
 }
@@ -25,7 +28,7 @@ export type BuilderArgument<P>
   | Partial<P>
   | BuilderArgumentArray<P>
 
-export interface BuilderState<P> { props: P, children: ReactNode[] }
+export interface BuilderState<P> { props: { children?: ReactNode[] } & P }
 export function isBuilder(target: any): target is Builder<any> { return target.__isNJSXBuilder__ }
 
 
@@ -35,36 +38,36 @@ export interface Rule {
 }
 
 
-const njsx: NJSX = <P>(
-  type: ReactType<P>,
-  baseProps: Partial<P & Attributes> = {},
-  ...baseChildren: Array<ReactNode | Builder<any>>): Builder<P> => {
+const njsx = <P>(type: ReactType<P>, baseProps: { children?: ReactNode[] } & Partial<P> = {}): Builder<P> => {
+  const config = njsx as NJSX
 
-  function applyArg(state: BuilderState<P>, arg: BuilderArgument<P>): BuilderState<P> {
-    if (isArray(arg)) return arg.reduce(applyArg, state)
-    const rule = njsx.rules && njsx.rules.find(r => r.appliesTo(arg))
+  function applyArg(state: BuilderState<Partial<P>>, arg: BuilderArgument<P>): BuilderState<P> {
+    if (isArray(arg)) return arg.reduce(applyArg, state) as BuilderState<P>
+    const rule = config.rules.find(r => r.appliesTo(arg))
     if (!rule) { throw new TypeError(`Unsupported NJSX argument: ${arg}`) }
     return rule.apply(arg as BuilderArgument<any>, state)
   }
 
   const builder = ((...args: Array<BuilderArgument<P>>): any => {
-    if (!args.length) return createElement(type, baseProps as P & Attributes, ...baseChildren)
-    const nextState: BuilderState<P> = args.reduce(applyArg, { props: baseProps, children: baseChildren } as BuilderState<P>)
-    return njsx(type, nextState.props, ...nextState.children)
+    if (!args.length) {
+      const { children = [], ...otherProps } = baseProps as any
+      return createElement(type, otherProps, ...children)
+    }
+
+    const nextState = args.reduce(applyArg, { props: baseProps }) as BuilderState<P>
+    return njsx(type, nextState.props)
   }) as Builder<P>
 
   return new Proxy(builder, {
     get(_, name) {
       if (name === '__isNJSXBuilder__') return true
-
-      const currentProps: any = builder().props
-      const { children = [], ...props } = currentProps
-
-      if (!njsx.dynamicSelectorHandler) { throw new TypeError(`Can't refine by ${name}: No handler for dynamic selector was provided`) }
-      const next = njsx.dynamicSelectorHandler(name as string, { props, children })
-      return njsx(type, next.props, ...next.children)
+      return njsx(type, config.dynamicSelectorHandler(name.toString(), builder()).props)
     },
   })
 }
 
-export default njsx
+(njsx as NJSX).dynamicSelectorHandler = (name) => {
+  throw new TypeError(`Can't refine by ${name}: No handler for dynamic selector was provided`)
+}
+
+export default njsx as NJSX
