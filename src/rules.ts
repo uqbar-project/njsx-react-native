@@ -14,20 +14,20 @@ function mergedStyle(props: any, style: any) {
 
 export const HASH_AS_ATRIBUTES: Rule = {
   appliesTo(arg) { return !!arg && typeof arg === 'object' },
-  apply<P extends object>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>): BuilderState<P> {
-    return { props: { ...props as object, ...(arg as {}), ...mergedStyle(props, (arg as any as { style: any }).style) } as P, children }
+  apply<P>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>): BuilderState<P> {
+    return { props: { ...props as {}, ...(arg as {}), ...mergedStyle(props, (arg as any as { style: any }).style) } as P, children }
   },
 }
 
 export const STRING_AS_CLASS: Rule = {
   appliesTo(arg) { return typeof arg === 'string' && arg.trim().startsWith('.') },
-  apply<P extends object>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>) {
-    const { className, ...otherProps } = { className: '', ...props as object }
+  apply<P>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>) {
+    const { className, ...otherProps } = { className: '', ...props as {} }
     return {
       props: {
         ...otherProps,
         className: [...className.split(' '), ...(arg as string).split('.')].map(c => c.trim()).filter(String).join(' '),
-      },
+      } as any as P,
       children,
     } as BuilderState<P>
   },
@@ -35,8 +35,8 @@ export const STRING_AS_CLASS: Rule = {
 
 export const STYLE_AS_STYLE: Rule = {
   appliesTo(arg) { return !!arg && typeof arg === 'object' && Object.keys(arg).indexOf('styleId') >= 0 },
-  apply<P extends object>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>) {
-    return { props: { ...props as object, ...mergedStyle(props, arg) }, children } as BuilderState<P>
+  apply<P>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>) {
+    return { props: { ...props as {}, ...mergedStyle(props, arg) }, children } as BuilderState<P>
   },
 }
 

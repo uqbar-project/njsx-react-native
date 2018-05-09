@@ -2,7 +2,7 @@ import { assert, expect } from 'chai'
 import * as mock from 'mock-require'
 import * as React from 'react'
 import njsx from './index'
-import { BuilderArgument, BuilderRefinement } from './index'
+import { BuilderArgument, BuilderState } from './index'
 import * as Rules from './rules'
 
 const { keys, assign } = Object
@@ -120,7 +120,7 @@ describe('NJSX', () => {
 
     it('should be refinable by functional refinements', () => {
       njsx.rules = [Rules.APPLY_REFINEMENTS]
-      const foo: BuilderRefinement<any> = ({ props, children }) => ({ props: { ...props, className: 'foo' }, children })
+      const foo = ({ props, children }: BuilderState<any>) => ({ props: { ...props, className: 'foo' }, children })
       const component = njsx('div')(foo)()
 
       expect(component).to.deep.equal(<div className='foo' />)

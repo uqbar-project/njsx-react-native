@@ -3,53 +3,53 @@ import { Attributes, createElement, ReactChild, ReactElement, ReactNode, ReactTy
 const { isArray } = Array
 
 export interface NJSX {
-  <P extends object>(type: ReactType<P>, props?: Partial<P & Attributes>, ...children: ReactNode[]): Builder<P>
+  <P>(type: ReactType<P>, props?: Partial<P & Attributes>, ...children: Array<ReactNode | Builder<any>>): Builder<P>
   rules?: Rule[]
-  dynamicSelectorHandler?: <P extends object>(arg: BuilderArgument<P>, current: BuilderState<{}>) => BuilderState<{}>
+  dynamicSelectorHandler?: <P>(arg: BuilderArgument<P>, current: BuilderState<{}>) => BuilderState<{}>
 }
 
-export type BuilderRefinement<P extends object> = (state: BuilderState<P>) => BuilderState<P>
-export type BuilderArgument<P extends object>
-  = BuilderRefinement<P>
-  | null
-  | undefined
-  | boolean
-  | (() => ReactElement<any>)
-  | ReactChild
-  | Partial<P>
-  | BuilderArgumentArray<P>
-export interface BuilderArgumentArray<P extends object> extends Array<BuilderArgument<P>> { }
-export interface BuilderState<P extends object> { props: P, children: ReactNode[] }
-export interface Builder<P extends object> {
+
+export interface Builder<P> {
   (): ReactElement<P>,
   (head: BuilderArgument<P>, ...tail: Array<BuilderArgument<P>>): Builder<P>
   [key: string]: Builder<P>
 }
+export interface BuilderArgumentArray<P> extends Array<BuilderArgument<P>> { }
+export type BuilderArgument<P>
+  = null
+  | undefined
+  | boolean
+  | ReactChild
+  | ((state: BuilderState<P>) => BuilderState<P>)
+  | (() => ReactElement<any>)
+  | Partial<P>
+  | BuilderArgumentArray<P>
+
+export interface BuilderState<P> { props: P, children: ReactNode[] }
+export function isBuilder(target: any): target is Builder<any> { return target.__isNJSXBuilder__ }
+
 
 export interface Rule {
   appliesTo(arg: BuilderArgument<any>): boolean
-  apply<P extends object>(arg: BuilderArgument<P>, current: BuilderState<P>): BuilderState<P>
+  apply<P>(arg: BuilderArgument<P>, current: BuilderState<P>): BuilderState<P>
 }
 
 
-function flatten<T>(array: Array<T | T[]>): T[] {
-  return array.reduce((acum: T[], elem) => [...acum, ...isArray(elem) ? elem as T[] : [elem as T]], [])
-}
-
-const njsx: NJSX = <P extends object>(
+const njsx: NJSX = <P>(
   type: ReactType<P>,
-  initialProps: Partial<P & Attributes> = {},
-  ...initialChildren: ReactNode[]): Builder<P> => {
+  baseProps: Partial<P & Attributes> = {},
+  ...baseChildren: Array<ReactNode | Builder<any>>): Builder<P> => {
 
-  const builder: Builder<P> = ((...args: Array<BuilderArgument<P>>): any => {
-    if (!args.length) return createElement(type, initialProps as P & Attributes, ...initialChildren)
+  function applyArg(state: BuilderState<P>, arg: BuilderArgument<P>): BuilderState<P> {
+    if (isArray(arg)) return arg.reduce(applyArg, state)
+    const rule = njsx.rules && njsx.rules.find(r => r.appliesTo(arg))
+    if (!rule) { throw new TypeError(`Unsupported NJSX argument: ${arg}`) }
+    return rule.apply(arg as BuilderArgument<any>, state)
+  }
 
-    const nextState: BuilderState<P> =
-      flatten(args).reduce((previous, arg) => {
-        const rule = njsx.rules && njsx.rules.find(r => r.appliesTo(arg))
-        if (!rule) { throw new TypeError(`Unsupported NJSX argument: ${arg}`) }
-        return rule.apply(arg as BuilderArgument<any>, previous)
-      }, { props: initialProps, children: initialChildren })
+  const builder = ((...args: Array<BuilderArgument<P>>): any => {
+    if (!args.length) return createElement(type, baseProps as P & Attributes, ...baseChildren)
+    const nextState: BuilderState<P> = args.reduce(applyArg, { props: baseProps, children: baseChildren } as BuilderState<P>)
     return njsx(type, nextState.props, ...nextState.children)
   }) as Builder<P>
 
