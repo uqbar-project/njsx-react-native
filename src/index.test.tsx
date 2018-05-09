@@ -3,7 +3,7 @@ import * as mock from 'mock-require'
 import * as React from 'react'
 import njsx from './index'
 import { BuilderArgument, BuilderRefinement } from './index'
-import Rules from './rules'
+import * as Rules from './rules'
 
 const { keys, assign } = Object
 

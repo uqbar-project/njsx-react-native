@@ -19,7 +19,6 @@ export type BuilderArgument<P extends object>
   | Partial<P>
   | BuilderArgumentArray<P>
 export interface BuilderArgumentArray<P extends object> extends Array<BuilderArgument<P>> { }
-
 export interface BuilderState<P extends object> { props: P, children: ReactNode[] }
 export interface Builder<P extends object> {
   (): ReactElement<P>,

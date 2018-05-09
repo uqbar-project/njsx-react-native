@@ -1,7 +1,7 @@
 import { Attributes, DetailedHTMLProps, HTMLAttributes, ImgHTMLAttributes } from 'react'
 import njsx, { Rule } from './index'
 import { Builder, BuilderArgument } from './index'
-import RULES from './rules'
+import * as RULES from './rules'
 
 export const DEFAULT_REACT_RULES: Rule[] = [
   RULES.STRING_AS_CLASS,

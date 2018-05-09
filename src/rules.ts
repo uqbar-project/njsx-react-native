@@ -12,14 +12,14 @@ function mergedStyle(props: any, style: any) {
   return { style: [props.style, newStyle] }
 }
 
-const HASH_AS_ATRIBUTES: Rule = {
+export const HASH_AS_ATRIBUTES: Rule = {
   appliesTo(arg) { return !!arg && typeof arg === 'object' },
   apply<P extends object>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>): BuilderState<P> {
     return { props: { ...props as object, ...(arg as {}), ...mergedStyle(props, (arg as any as { style: any }).style) } as P, children }
   },
 }
 
-const STRING_AS_CLASS: Rule = {
+export const STRING_AS_CLASS: Rule = {
   appliesTo(arg) { return typeof arg === 'string' && arg.trim().startsWith('.') },
   apply<P extends object>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>) {
     const { className, ...otherProps } = { className: '', ...props as object }
@@ -33,61 +33,54 @@ const STRING_AS_CLASS: Rule = {
   },
 }
 
-const STYLE_AS_STYLE: Rule = {
+export const STYLE_AS_STYLE: Rule = {
   appliesTo(arg) { return !!arg && typeof arg === 'object' && Object.keys(arg).indexOf('styleId') >= 0 },
   apply<P extends object>(arg: BuilderArgument<P>, { props, children }: BuilderState<P>) {
     return { props: { ...props as object, ...mergedStyle(props, arg) }, children } as BuilderState<P>
   },
 }
 
-const STRING_AS_CHILD: Rule = {
+export const STRING_AS_CHILD: Rule = {
   appliesTo(arg) { return typeof arg === 'string' },
   apply(arg, { props, children }) { return { props, children: [...children, arg] } },
 }
 
-export default {
-  HASH_AS_ATRIBUTES,
-  STRING_AS_CLASS,
-  STYLE_AS_STYLE,
-  STRING_AS_CHILD,
+export const NUMBER_AS_CHILD: Rule = {
+  appliesTo(arg) { return typeof arg === 'number' },
+  apply(arg, { props, children }) { return { props, children: [...children, (arg as number).toString()] } },
+}
 
-  NUMBER_AS_CHILD: {
-    appliesTo(arg) { return typeof arg === 'number' },
-    apply(arg, { props, children }) { return { props, children: [...children, (arg as number).toString()] } },
-  } as Rule,
+export const BOOLEAN_AS_CHILD: Rule = {
+  appliesTo(arg) { return typeof arg === 'boolean' },
+  apply(arg, { props, children }) { return { props, children: [...children, (arg as boolean).toString()] } },
+}
 
-  BOOLEAN_AS_CHILD: {
-    appliesTo(arg) { return typeof arg === 'boolean' },
-    apply(arg, { props, children }) { return { props, children: [...children, (arg as boolean).toString()] } },
-  } as Rule,
+export const NJSX_COMPONENT_AS_CHILD: Rule = {
+  appliesTo(arg) { return (arg as any).__isNJSXBuilder__ },
+  apply(arg, { props, children }) { return { props, children: [...children, (arg as Builder<any>)()] } },
+}
 
-  NJSX_COMPONENT_AS_CHILD: {
-    appliesTo(arg) { return (arg as any).__isNJSXBuilder__ },
-    apply(arg, { props, children }) { return { props, children: [...children, (arg as Builder<any>)()] } },
-  } as Rule,
+export const REACT_COMPONENT_AS_CHILD: Rule = {
+  appliesTo(arg) { return arg && typeof arg === 'object' && (arg as { props: any }).props },
+  apply(arg, { props, children }) { return { props, children: [...children, arg] } },
+}
 
-  REACT_COMPONENT_AS_CHILD: {
-    appliesTo(arg) { return arg && typeof arg === 'object' && (arg as { props: any }).props },
-    apply(arg, { props, children }) { return { props, children: [...children, arg] } },
-  } as Rule,
+export const IGNORE_NULL: Rule = {
+  appliesTo(arg) { return arg === null },
+  apply(_, previous) { return previous },
+}
 
-  IGNORE_NULL: {
-    appliesTo(arg) { return arg === null },
-    apply(_, previous) { return previous },
-  } as Rule,
+export const IGNORE_BOOLEANS: Rule = {
+  appliesTo(arg) { return typeof arg === 'boolean' },
+  apply(_, previous) { return previous },
+}
 
-  IGNORE_BOOLEANS: {
-    appliesTo(arg) { return typeof arg === 'boolean' },
-    apply(_, previous) { return previous },
-  } as Rule,
+export const IGNORE_UNDEFINED: Rule = {
+  appliesTo(arg) { return arg === undefined },
+  apply(_, previous) { return previous },
+}
 
-  IGNORE_UNDEFINED: {
-    appliesTo(arg) { return arg === undefined },
-    apply(_, previous) { return previous },
-  } as Rule,
-
-  APPLY_REFINEMENTS: {
-    appliesTo(arg) { return typeof arg === 'function' },
-    apply(arg, state) { return (arg as (s: BuilderState<any>) => BuilderState<any>)(state) },
-  } as Rule,
+export const APPLY_REFINEMENTS: Rule = {
+  appliesTo(arg) { return typeof arg === 'function' },
+  apply(arg, state) { return (arg as (s: BuilderState<any>) => BuilderState<any>)(state) },
 }
