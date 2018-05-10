@@ -120,7 +120,7 @@ describe('NJSX', () => {
 
     it('should be refinable by functional refinements', () => {
       njsx.rules = [Rules.APPLY_REFINEMENTS]
-      const foo = ({ props }: BuilderState<any>) => ({ props: { ...props, className: 'foo' } })
+      const foo = ({ props }: BuilderState<any>) => ({ ...props, className: 'foo' })
       const component = njsx('div')(foo)()
 
       expect(component).to.deep.equal(<div className='foo' />)

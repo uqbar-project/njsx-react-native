@@ -2,7 +2,6 @@ import { createElement, ReactChild, ReactElement, ReactNode, ReactType } from 'r
 
 const { isArray } = Array
 
-// TODO: Hacía falta el Attributes en Attributes & { children?: ReactNode[] } & P ?
 
 export interface NJSX {
   <P>(type: ReactType<P>): Builder<P>
@@ -28,7 +27,9 @@ export type BuilderArgument<P>
   | Partial<P>
   | BuilderArgumentArray<P>
 
-export interface BuilderState<P> { props: { children?: ReactNode[] } & P }
+// TODO: { children?: ReactNode[] } dónde debería
+
+export type BuilderState<P> = { children?: ReactNode[] } & P
 export function isBuilder(target: any): target is Builder<any> { return target.__isNJSXBuilder__ }
 
 
@@ -54,14 +55,14 @@ const njsx = <P>(type: ReactType<P>, baseProps: { children?: ReactNode[] } & Par
       return createElement(type, otherProps, ...children)
     }
 
-    const nextState = args.reduce(applyArg, { props: baseProps }) as BuilderState<P>
-    return njsx(type, nextState.props)
+    const nextState = args.reduce(applyArg, baseProps) as BuilderState<P>
+    return njsx(type, nextState)
   }) as Builder<P>
 
   return new Proxy(builder, {
     get(_, name) {
       if (name === '__isNJSXBuilder__') return true
-      return njsx(type, config.dynamicSelectorHandler(name.toString(), builder()).props)
+      return njsx(type, config.dynamicSelectorHandler(name.toString(), builder().props))
     },
   })
 }
