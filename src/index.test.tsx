@@ -1,17 +1,20 @@
 import { assert, expect } from 'chai'
-import * as mock from 'mock-require'
+// import * as mock from 'mock-require'
 import * as React from 'react'
 import njsx from './index'
-import { BuilderArgument, BuilderState } from './index'
-import * as Rules from './rules'
+import { BuilderState } from './index'
+import { CLASSES_FROM_STRINGS } from './react'
 
-const { keys, assign } = Object
+// const { keys, assign } = Object
 
-mock('react-native', {
-  StyleSheet: {
-    create: (styleDefinition: any) => keys(styleDefinition).reduce((acum, key) => assign(acum, { [key]: 1 }), {}),
-  },
-})
+// TODO: test that class names are acumulative:
+// div('.lala')({className: 'bar'})
+
+// mock('react-native', {
+//   StyleSheet: {
+//     create: (styleDefinition: any) => keys(styleDefinition).reduce((acum, key) => assign(acum, { [key]: 1 }), {}),
+//   },
+// })
 // const { StyleSheet } = require("react-native.js")
 
 describe('NJSX', () => {
@@ -42,112 +45,91 @@ describe('NJSX', () => {
     })
 
     it('should be refinable by passing attributes as a hash', () => {
-      njsx.rules = [Rules.HASH_AS_ATRIBUTES]
       const component = njsx('div')({ className: 'none' })()
 
       expect(component).to.deep.equal(<div className='none' />)
     })
 
     it('should be refinable by passing a string representing a class name', () => {
-      njsx.rules = [Rules.STRING_AS_CLASS]
+      njsx.argumentTransformations = [CLASSES_FROM_STRINGS]
       const component = njsx('div')('.bar.baz')('.qux')()
 
       expect(component).to.deep.equal(<div className='bar baz qux' />)
     })
 
     it('should be refinable by passing a string representing content', () => {
-      njsx.rules = [Rules.STRING_AS_CHILD]
       const component = njsx('div')('bar')()
 
       expect(component).to.deep.equal(<div>bar</div>)
     })
 
     it('should be refinable by passing a number representing content', () => {
-      njsx.rules = [Rules.NUMBER_AS_CHILD]
       const component = njsx('div')(5)()
 
-      expect(component).to.deep.equal(<div>5</div>)
-    })
-
-    it('should be refinable by passing a boolean representing content', () => {
-      njsx.rules = [Rules.BOOLEAN_AS_CHILD]
-      const component = njsx('div')(false)()
-
-      expect(component).to.deep.equal(<div>false</div>)
+      expect(component).to.deep.equal(<div>{5}</div>)
     })
 
     it('should be refinable by passing other React components as children', () => {
-      njsx.rules = [Rules.REACT_COMPONENT_AS_CHILD]
       const component = njsx('div')(<span />, <p />)()
 
       expect(component).to.deep.equal(<div><span /><p /></div>)
     })
 
     it('should be refinable by passing other NJSX components as children', () => {
-      njsx.rules = [Rules.NJSX_COMPONENT_AS_CHILD]
       const component = njsx('div')(njsx('span'), njsx('p'))()
 
       expect(component).to.deep.equal(<div><span /><p /></div>)
     })
 
     it('should be refinable by passing an array of children', () => {
-      njsx.rules = [Rules.NJSX_COMPONENT_AS_CHILD]
       const component = njsx('div')([njsx('span'), njsx('p')])()
 
       expect(component).to.deep.equal(<div><span /><p /></div>)
     })
 
     it('should ignore null arguments', () => {
-      njsx.rules = [Rules.IGNORE_NULL]
-      const component = njsx('div')(null, [null])()
-
-      expect(component).to.deep.equal(<div />)
-    })
-
-    it('should ignore null, even if it can be refined by other objects', () => {
-      njsx.rules = [Rules.REACT_COMPONENT_AS_CHILD, Rules.HASH_AS_ATRIBUTES, Rules.STYLE_AS_STYLE, Rules.IGNORE_NULL]
       const component = njsx('div')(null, [null])()
 
       expect(component).to.deep.equal(<div />)
     })
 
     it('should ignore undefined arguments', () => {
-      njsx.rules = [Rules.IGNORE_UNDEFINED]
       const component = njsx('div')(undefined, [undefined])()
 
       expect(component).to.deep.equal(<div />)
     })
 
+    it('should ignore boolean arguments', () => {
+      const component = njsx('div')(false)()
+
+      expect(component).to.deep.equal(<div />)
+    })
+
     it('should be refinable by functional refinements', () => {
-      njsx.rules = [Rules.APPLY_REFINEMENTS]
       const foo = ({ props }: BuilderState<any>) => ({ ...props, className: 'foo' })
       const component = njsx('div')(foo)()
 
       expect(component).to.deep.equal(<div className='foo' />)
     })
 
-    it('should not be refinable by invalid arguments', () => {
-      const component = njsx('div')
-
-      expect(() => component('unsupported argument')).to.throw(TypeError)
-    })
-
     it('should be refinable by dynamic messages if a handler is defined', () => {
-      njsx.dynamicSelectorHandler = (arg: BuilderArgument<any>, state) => Rules.STRING_AS_CLASS.apply(arg, state)
+      njsx.argumentTransformations = [CLASSES_FROM_STRINGS]
+      njsx.dynamicSelectorHandler = (arg: string) => `.${arg}`
       const component = njsx('div').bar.baz.qux()
 
       expect(component).to.deep.equal(<div className='bar baz qux' />)
     })
 
     it('should be refinable by property key accessing if a handler is defined', () => {
-      njsx.dynamicSelectorHandler = (arg: BuilderArgument<any>, state) => Rules.STRING_AS_CLASS.apply(arg, state)
+      njsx.argumentTransformations = [CLASSES_FROM_STRINGS]
+      njsx.dynamicSelectorHandler = (arg: string) => `.${arg}`
       const component = njsx('div')['.bar']['baz qux']()
 
       expect(component).to.deep.equal(<div className='bar baz qux' />)
     })
 
     it('should not be refinable by dynamic messages after the component is built', () => {
-      njsx.dynamicSelectorHandler = (_, s) => { assert.fail(); return s }
+      njsx.dynamicSelectorHandler = (_) => { assert.fail(); throw new Error('Test failed') }
       expect(() => njsx('div')().key).to.not.throw()
     })
 

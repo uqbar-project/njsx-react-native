@@ -43,6 +43,10 @@
         "ignore-pattern": "^import |^export {(.*?)}"
       }
     ],
+    "array-type": [
+      true,
+      "array"
+    ],
     "curly": false,
     "member-access": false,
     "jsx-no-lambda": false,
