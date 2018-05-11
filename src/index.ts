@@ -1,91 +1,94 @@
 import { createElement, ReactChild, ReactElement, ReactNode, ReactType } from 'react'
 
+// TODO: Replace with spread operator once Typescript suports spread of generics (https://github.com/Microsoft/TypeScript/pull/13288)
+const { assign } = Object
 const { isArray } = Array
 
-// TODO: Check once more if all types are right and any cast can be removed.
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-export interface NJSX {
-  <P>(type: ReactType<P>): Builder<P>
+export type ArgumentTransformation = (arg: any) => any
 
-  argumentTransformations: (<P>(arg: BuilderArgument<P>) => BuilderArgument<P>)[]
-  dynamicSelectorHandler: <P>(arg: string) => BuilderArgument<P>
+export const NJSXConfig = {
+  argumentTransformations: new Array<ArgumentTransformation>(),
+  dynamicSelectorHandler: (name: string): any => {
+    throw new TypeError(`Can't refine by ${name}: No handler for dynamic selector was provided`)
+  },
 }
 
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+// BUILDERS
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
 export interface Builder<P> {
-  (): ReactElement<{ children?: ReactNode[] } & P>,
+  (): ReactElement<P>,
   (head: BuilderArgument<P>, ...tail: BuilderArgument<P>[]): Builder<P>
   readonly [key: string]: Builder<P>
 }
 
-export type BuilderRefinement<P> = (state: BuilderState<P>) => BuilderState<P>
-export interface BuilderArgumentArray<P> extends Array<BuilderArgument<P>> { }
 export type BuilderArgument<P>
-  = null
+  = BuilderRefinement<P>
   | undefined
+  | null
   | boolean
   | ReactChild
-  | BuilderRefinement<P>
   | (() => ReactElement<any>)
   | Partial<P>
   | BuilderArgumentArray<P>
+export interface BuilderArgumentArray<P> extends Array<BuilderArgument<P>> { }
 
 
-export type BuilderState<P> = { children?: ReactNode[] } & P
+export type BuilderState<P> = Partial<P & { children: ReactNode[] }>
 
+export type BuilderRefinement<P> = (state: BuilderState<P>) => BuilderState<P>
 
-function addChild<P>(state: BuilderState<P>, child: ReactNode): BuilderState<P> {
-  return { ...state as {}, children: [...state.children || [], child] } as BuilderState<P>
-}
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+// FACADE
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-function isBuilder(target: any): target is Builder<any> { return target.__isNJSXBuilder__ }
-
-const njsx = <P>(type: ReactType<P>, baseState: BuilderState<Partial<P>> = {}): Builder<P> => {
-  const config = njsx as NJSX
-
-  function applyArg(state: BuilderState<Partial<P>>, baseArg: BuilderArgument<P>): BuilderState<Partial<P>> {
-    const arg = config.argumentTransformations.reduce((a, t) => t(a), baseArg)
-
-    if (isArray(arg)) return arg.reduce(applyArg, state)
-
-    if (arg === null) return state
-    if (arg === undefined) return state
-    if (typeof arg === 'boolean') return state
-
-    if (typeof arg === 'number') return addChild(state, arg)
-    if (typeof arg === 'string') return addChild(state, arg)
-    if (typeof arg === 'object' && (arg as { props: any }).props) return addChild(state, arg)
-    if (isBuilder(arg)) return addChild(state, arg())
-
-    if (typeof arg === 'object') return { ...state as {}, ...arg as {} }
-
-    if (typeof arg === 'function') return (arg as (s: BuilderState<any>) => BuilderState<any>)(state)
-
-    throw new TypeError(`Unsupported NJSX argument: ${arg}`)
-  }
-
+export type NJSX = <P>(type: ReactType<P>) => Builder<P>
+const njsx = <P>(type: ReactType<P>, baseState: BuilderState<P> = {}): Builder<P> => {
   // TODO: (after checking if there is a Proxy for Native) Maybe refactor this to handle the apply in the ProxyHandler.
-  const builder = ((...args: BuilderArgument<P>[]): any => {
-    if (!args.length) {
-      const { children = [], ...otherProps } = baseState as any
-      return createElement(type, otherProps, ...children)
-    }
+  const builder = (...args: BuilderArgument<P>[]) => !args.length
+    ? createElement(type, baseState as P, ...baseState.children || [])
+    : njsx(type, args.reduce<BuilderState<P>>(applyArgument, baseState))
 
-    return njsx(type, args.reduce(applyArg, baseState))
-  }) as Builder<P>
-
-  return new Proxy(builder, {
+  return new Proxy(builder as Builder<P>, {
     get(target, name) {
       if (name === '__isNJSXBuilder__') return true
-      return target(config.dynamicSelectorHandler(name.toString()))
+      return target(NJSXConfig.dynamicSelectorHandler(name.toString()))
     },
   })
 }
 
+function applyArgument<P>(state: BuilderState<P>, baseArg: BuilderArgument<P>): BuilderState<P> {
+  const arg = NJSXConfig.argumentTransformations.reduce((s, tx) => tx(s), baseArg)
 
-export default ((njsxInstance: NJSX) => {
-  njsxInstance.argumentTransformations = []
-  njsxInstance.dynamicSelectorHandler = (name) => {
-    throw new TypeError(`Can't refine by ${name}: No handler for dynamic selector was provided`)
-  }
-  return njsxInstance
-})(njsx as NJSX)
+  if (isIgnored(arg)) return state
+  if (isArray(arg)) return arg.reduce(applyArgument, state)
+  if (isBuilder(arg)) return addChild(state, arg())
+  if (isChild(arg)) return addChild(state, arg)
+  if (typeof arg === 'object') return assign({}, state, arg)
+  if (typeof arg === 'function') return arg(state)
+
+  throw new TypeError(`Unsupported NJSX argument: ${arg}`)
+}
+
+function isBuilder(target: any): target is () => ReactElement<any> {
+  return target.__isNJSXBuilder__
+}
+
+function isIgnored(target: any): target is null | undefined | boolean {
+  return target === null || target === undefined || typeof target === 'boolean'
+}
+
+function isChild(target: any): target is number | string | ReactElement<any> {
+  return typeof target === 'number' || typeof target === 'string' || typeof target === 'object' && !!target.type
+}
+
+function addChild<P>(state: BuilderState<P>, child: ReactNode) {
+  return assign({}, state, { children: [...state.children || [], child] })
+}
+
+export default njsx as NJSX

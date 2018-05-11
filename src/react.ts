@@ -1,10 +1,10 @@
 import { AnchorHTMLAttributes, AreaHTMLAttributes, AudioHTMLAttributes, BaseHTMLAttributes, BlockquoteHTMLAttributes, ButtonHTMLAttributes, CanvasHTMLAttributes, ColgroupHTMLAttributes, ColHTMLAttributes, DelHTMLAttributes, DetailedHTMLProps, DetailsHTMLAttributes, DialogHTMLAttributes, EmbedHTMLAttributes, FieldsetHTMLAttributes, FormHTMLAttributes, HTMLAttributes, HtmlHTMLAttributes, IframeHTMLAttributes, ImgHTMLAttributes, InputHTMLAttributes, InsHTMLAttributes, KeygenHTMLAttributes, LabelHTMLAttributes, LiHTMLAttributes, LinkHTMLAttributes, MapHTMLAttributes, MenuHTMLAttributes, MetaHTMLAttributes, MeterHTMLAttributes, ObjectHTMLAttributes, OlHTMLAttributes, OptgroupHTMLAttributes, OptionHTMLAttributes, OutputHTMLAttributes, ParamHTMLAttributes, ProgressHTMLAttributes, QuoteHTMLAttributes, ScriptHTMLAttributes, SelectHTMLAttributes, SourceHTMLAttributes, StyleHTMLAttributes, SVGProps, TableHTMLAttributes, TdHTMLAttributes, TextareaHTMLAttributes, ThHTMLAttributes, TimeHTMLAttributes, TrackHTMLAttributes, VideoHTMLAttributes, WebViewHTMLAttributes } from 'react'
-import njsx, { Builder, BuilderArgument } from './index'
+import njsx, { ArgumentTransformation, Builder, NJSXConfig } from './index'
 
 
 // TODO: Also extract the id
 // TODO: Refactor this a bit...
-export const CLASSES_FROM_STRINGS = (arg: BuilderArgument<{}>) => {
+export const CLASSES_FROM_STRINGS: ArgumentTransformation = (arg: any) => {
   if (typeof arg === 'string' && arg.trim().startsWith('.')) {
     return (props: {}) => {
       const { className = '', ...otherProps } = props as any
@@ -16,8 +16,8 @@ export const CLASSES_FROM_STRINGS = (arg: BuilderArgument<{}>) => {
   } else return arg
 }
 
-njsx.dynamicSelectorHandler = (arg: string) => `.${arg}`
-njsx.argumentTransformations = [CLASSES_FROM_STRINGS]
+NJSXConfig.dynamicSelectorHandler = (arg: string) => `.${arg}`
+NJSXConfig.argumentTransformations = [CLASSES_FROM_STRINGS]
 
 
 export const a: Builder<DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>> = njsx('a')

@@ -1,7 +1,7 @@
 import { assert, expect } from 'chai'
 // import * as mock from 'mock-require'
 import * as React from 'react'
-import njsx from './index'
+import njsx, { NJSXConfig } from './index'
 import { BuilderState } from './index'
 import { CLASSES_FROM_STRINGS } from './react'
 
@@ -28,9 +28,7 @@ describe('NJSX', () => {
 
     it('should be creatable from a React component', () => {
       class Component extends React.Component {
-        render() {
-          return <div />
-        }
+        render() { return <div /> }
       }
       const component = njsx(Component)()
 
@@ -51,7 +49,7 @@ describe('NJSX', () => {
     })
 
     it('should be refinable by passing a string representing a class name', () => {
-      njsx.argumentTransformations = [CLASSES_FROM_STRINGS]
+      NJSXConfig.argumentTransformations = [CLASSES_FROM_STRINGS]
       const component = njsx('div')('.bar.baz')('.qux')()
 
       expect(component).to.deep.equal(<div className='bar baz qux' />)
@@ -113,23 +111,23 @@ describe('NJSX', () => {
     })
 
     it('should be refinable by dynamic messages if a handler is defined', () => {
-      njsx.argumentTransformations = [CLASSES_FROM_STRINGS]
-      njsx.dynamicSelectorHandler = (arg: string) => `.${arg}`
+      NJSXConfig.argumentTransformations = [CLASSES_FROM_STRINGS]
+      NJSXConfig.dynamicSelectorHandler = (arg: string) => `.${arg}`
       const component = njsx('div').bar.baz.qux()
 
       expect(component).to.deep.equal(<div className='bar baz qux' />)
     })
 
     it('should be refinable by property key accessing if a handler is defined', () => {
-      njsx.argumentTransformations = [CLASSES_FROM_STRINGS]
-      njsx.dynamicSelectorHandler = (arg: string) => `.${arg}`
+      NJSXConfig.argumentTransformations = [CLASSES_FROM_STRINGS]
+      NJSXConfig.dynamicSelectorHandler = (arg: string) => `.${arg}`
       const component = njsx('div')['.bar']['baz qux']()
 
       expect(component).to.deep.equal(<div className='bar baz qux' />)
     })
 
     it('should not be refinable by dynamic messages after the component is built', () => {
-      njsx.dynamicSelectorHandler = (_) => { assert.fail(); throw new Error('Test failed') }
+      NJSXConfig.dynamicSelectorHandler = (_) => { assert.fail(); throw new Error('Test failed') }
       expect(() => njsx('div')().key).to.not.throw()
     })
 
@@ -137,35 +135,35 @@ describe('NJSX', () => {
       // const styleSheet = StyleSheet.create({ style: { bar: "baz" } })
 
       // it('no previous style is defined', () => {
-      //   njsx.rules = [Rules.STYLE_AS_STYLE]
+      //   NJSXConfig.rules = [Rules.STYLE_AS_STYLE]
       //   const component = njsx('div')(styleSheet.style)()
 
       //   expect(component).to.deep.equal(<div style={1} />)
       // })
 
       // it('style is already defined as array', () => {
-      //   njsx.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
+      //   NJSXConfig.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
       //   const component = njsx('div')({ style: [5] })(styleSheet.style)()
 
       //   expect(component).to.deep.equal(<div style={[5, 1]} />)
       // })
 
       // it('style is already defined as object', () => {
-      //   njsx.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
+      //   NJSXConfig.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
       //   const component = njsx('div')({ style: { bar: "baz" } })(styleSheet.style)()
 
       //   expect(component).to.deep.equal(<div style={[{ bar: "baz" }, 1]} />)
       // })
 
       // it('style is already defined as id', () => {
-      //   njsx.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
+      //   NJSXConfig.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
       //   const component = njsx('div')({ style: 5 })(styleSheet.style)()
 
       //   expect(component).to.deep.equal(<div style={[5, 1]} />)
       // })
 
       // it('style is already defined and a new style is set as hash attribute', () => {
-      //   njsx.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
+      //   NJSXConfig.rules = [Rules.STYLE_AS_STYLE, Rules.HASH_AS_ATRIBUTES]
       //   const component = njsx('div')(styleSheet.style)({ style: 5 })()
 
       //   expect(component).to.deep.equal(<div style={[1, 5]} />)
