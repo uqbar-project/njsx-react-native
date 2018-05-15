@@ -10,12 +10,15 @@ const { isArray } = Array
 
 export type ArgumentTransformation = (arg: any) => any
 
-export const NJSXConfig = {
-  argumentTransformations: new Array<ArgumentTransformation>(),
-  dynamicSelectorHandler: (name: string): any => {
-    throw new TypeError(`Can't refine by ${name}: No handler for dynamic selector was provided`)
-  },
-}
+export const NJSXConfig: {
+  argumentTransformations: ArgumentTransformation[],
+  dynamicSelectorHandler?: (name: string) => any,
+} = {
+    argumentTransformations: [],
+    dynamicSelectorHandler: (name: string) => {
+      throw new TypeError(`Can't refine by ${name}: No handler for dynamic selector was provided`)
+    },
+  }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 // BUILDERS
@@ -49,15 +52,16 @@ export type BuilderRefinement<P> = (state: BuilderState<P>) => BuilderState<P>
 
 export type NJSX = <P>(type: ReactType<P>) => Builder<P>
 const njsx = <P>(type: ReactType<P>, baseState: BuilderState<P> = {}): Builder<P> => {
-  // TODO: (after checking if there is a Proxy for Native) Maybe refactor this to handle the apply in the ProxyHandler.
-  const builder = (...args: BuilderArgument<P>[]) => !args.length
-    ? createElement(type, baseState as P, ...baseState.children || [])
-    : njsx(type, args.reduce<BuilderState<P>>(applyArgument, baseState))
+  const builder = (
+    (...args: BuilderArgument<P>[]) => !args.length
+      ? createElement(type, baseState as P, ...baseState.children || [])
+      : njsx(type, args.reduce<BuilderState<P>>(applyArgument, baseState))
+  ) as Builder<P>
 
-  return new Proxy(builder as Builder<P>, {
+  return !NJSXConfig.dynamicSelectorHandler ? builder : new Proxy(builder, {
     get(target, name) {
       if (name === '__isNJSXBuilder__') return true
-      return target(NJSXConfig.dynamicSelectorHandler(name.toString()))
+      return target(NJSXConfig.dynamicSelectorHandler!(name.toString()))
     },
   })
 }
