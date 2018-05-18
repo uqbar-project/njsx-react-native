@@ -1,10 +1,6 @@
 {
   "extends": [
-    "tslint:recommended",
-    "tslint-react"
-  ],
-  "plugins": [
-    "react"
+    "tslint:recommended"
   ],
   "linterOptions": {
     "exclude": [
@@ -49,12 +45,12 @@
     ],
     "curly": false,
     "member-access": false,
-    "jsx-no-lambda": false,
     "object-literal-sort-keys": false,
     "interface-name": false,
     "member-ordering": false,
     "arrow-parens": false,
     "eofline": false,
-    "max-classes-per-file": false
+    "max-classes-per-file": false,
+    "callable-types": false
   }
 }

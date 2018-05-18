@@ -1,98 +1,68 @@
-import { createElement, ReactChild, ReactElement, ReactNode, ReactType } from 'react'
+import njsx, { Builder, NJSXConfig } from 'njsx'
+import * as ReactNative from 'react-native'
 
 // TODO: Replace with spread operator once Typescript suports spread of generics (https://github.com/Microsoft/TypeScript/pull/13288)
-const { assign } = Object
-const { isArray } = Array
+const { keys, assign } = Object
 
-// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-// CONFIGURATION
-// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-export type ArgumentTransformation = (arg: any) => any
-
-export const NJSXConfig: {
-  argumentTransformations: ArgumentTransformation[],
-  dynamicSelectorHandler?: (name: string) => any,
-} = {
-    argumentTransformations: [],
-    dynamicSelectorHandler: (name: string) => {
-      throw new TypeError(`Can't refine by ${name}: No handler for dynamic selector was provided`)
-    },
+declare module 'njsx' {
+  export interface Builder<P> {
+    (head: NJSXStyle | BuilderArgument<P>, ...tail: (NJSXStyle | BuilderArgument<P>)[]): Builder<P>
   }
-
-// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-// BUILDERS
-// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-export interface Builder<P> {
-  (): ReactElement<P>,
-  (head: BuilderArgument<P>, ...tail: BuilderArgument<P>[]): Builder<P>
-  readonly [key: string]: Builder<P>
 }
 
-export type BuilderArgument<P>
-  = BuilderRefinement<P>
-  | undefined
-  | null
-  | boolean
-  | ReactChild
-  | (() => ReactElement<any>)
-  | Partial<P>
-  | BuilderArgumentArray<P>
-export interface BuilderArgumentArray<P> extends Array<BuilderArgument<P>> { }
-
-
-export type BuilderState<P> = Partial<P & { children: ReactNode[] }>
-
-export type BuilderRefinement<P> = (state: BuilderState<P>) => BuilderState<P>
-
-// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-// FACADE
-// ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-export type NJSX = <P>(type: ReactType<P>) => Builder<P>
-const njsx = <P>(type: ReactType<P>, baseState: BuilderState<P> = {}): Builder<P> => {
-  const builder = (
-    (...args: BuilderArgument<P>[]) => !args.length
-      ? createElement(type, baseState as P, ...baseState.children || [])
-      : njsx(type, args.reduce<BuilderState<P>>(applyArgument, baseState))
-  ) as Builder<P>
-
-  return !NJSXConfig.dynamicSelectorHandler ? builder : new Proxy(builder, {
-    get(target, name) {
-      if (name === '__isNJSXBuilder__') return true
-      return target(NJSXConfig.dynamicSelectorHandler!(name.toString()))
-    },
-  })
+export interface NJSXStyle {
+  __styleId__: ReactNative.RegisteredStyle<ReactNative.ViewStyle | ReactNative.TextStyle | ReactNative.ImageStyle>
 }
 
-function applyArgument<P>(state: BuilderState<P>, baseArg: BuilderArgument<P>): BuilderState<P> {
-  const arg = NJSXConfig.argumentTransformations.reduce((s, tx) => tx(s), baseArg)
-
-  if (isIgnored(arg)) return state
-  if (isArray(arg)) return arg.reduce(applyArgument, state)
-  if (isBuilder(arg)) return addChild(state, arg())
-  if (isChild(arg)) return addChild(state, arg)
-  if (typeof arg === 'object') return assign({}, state, arg)
-  if (typeof arg === 'function') return arg(state)
-
-  throw new TypeError(`Unsupported NJSX argument: ${arg}`)
+export const StyleSheet = {
+  create<T extends ReactNative.StyleSheet.NamedStyles<T>>(styleDefinition: T) {
+    const reactStyle = ReactNative.StyleSheet.create(styleDefinition)
+    return keys(reactStyle).reduce((acum, key) =>
+      assign(acum, { [key]: { __styleId__: reactStyle[key as keyof T] } })
+      , {} as { [P in keyof T]: NJSXStyle })
+  },
 }
 
-function isBuilder(target: any): target is () => ReactElement<any> {
-  return target.__isNJSXBuilder__
-}
 
-function isIgnored(target: any): target is null | undefined | boolean {
-  return target === null || target === undefined || typeof target === 'boolean'
-}
+// TODO: Test this rules
+NJSXConfig.argumentTransformations.push(arg =>
+  typeof arg === 'object' && arg.hasOwnProperty('__styleId__') ? { style: arg.__styleId__ } : arg
+)
 
-function isChild(target: any): target is number | string | ReactElement<any> {
-  return typeof target === 'number' || typeof target === 'string' || typeof target === 'object' && !!target.type
-}
+NJSXConfig.dynamicSelectorHandler = undefined
 
-function addChild<P>(state: BuilderState<P>, child: ReactNode) {
-  return assign({}, state, { children: [...state.children || [], child] })
-}
-
-export default njsx as NJSX
+// TODO: Check if this list is really complete
+export const ActivityIndicator: Builder<ReactNative.ActivityIndicatorProps> = njsx(ReactNative.ActivityIndicator)
+export const Button = njsx(ReactNative.Button)
+export const DatePickerIOS = njsx(ReactNative.DatePickerIOS)
+export const DrawerLayoutAndroid = njsx(ReactNative.DrawerLayoutAndroid)
+export const FlatList = njsx(ReactNative.FlatList)
+export const Image = njsx(ReactNative.Image)
+export const KeyboardAvoidingView = njsx(ReactNative.KeyboardAvoidingView)
+export const ListView = njsx(ReactNative.ListView)
+export const MapView = njsx(ReactNative.MapView)
+export const Modal = njsx(ReactNative.Modal)
+export const NavigatorIOS = njsx(ReactNative.NavigatorIOS)
+export const Picker = njsx(ReactNative.Picker)
+export const PickerIOS = njsx(ReactNative.PickerIOS)
+export const ProgressBarAndroid = njsx(ReactNative.ProgressBarAndroid)
+export const ProgressViewIOS = njsx(ReactNative.ProgressViewIOS)
+export const RefreshControl = njsx(ReactNative.RefreshControl)
+export const ScrollView = njsx(ReactNative.ScrollView)
+export const SectionList = njsx(ReactNative.SectionList)
+export const SegmentedControlIOS = njsx(ReactNative.SegmentedControlIOS)
+export const Slider = njsx(ReactNative.Slider)
+export const SnapshotViewIOS = njsx(ReactNative.SnapshotViewIOS)
+export const StatusBar = njsx(ReactNative.StatusBar)
+export const Switch = njsx(ReactNative.Switch)
+export const TabBarIOS = njsx(ReactNative.TabBarIOS)
+export const TabBarIOSItem = njsx(ReactNative.TabBarIOS.Item)
+export const Text = njsx(ReactNative.Text)
+export const TextInput = njsx(ReactNative.TextInput)
+export const ToolbarAndroid = njsx(ReactNative.ToolbarAndroid)
+export const TouchableHighlight = njsx(ReactNative.TouchableHighlight)
+export const TouchableNativeFeedback = njsx(ReactNative.TouchableNativeFeedback)
+export const TouchableOpacity = njsx(ReactNative.TouchableOpacity)
+export const TouchableWithoutFeedback = njsx(ReactNative.TouchableWithoutFeedback)
+export const View = njsx(ReactNative.View)
+export const ViewPagerAndroid = njsx(ReactNative.ViewPagerAndroid)
