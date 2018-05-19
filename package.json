@@ -16,13 +16,13 @@
     "prepublishOnly": "yarn test && yarn build"
   },
   "dependencies": {
-    "@types/react-native": "^0.55.14",
     "njsx": "^3.0.1-SNAPSHOT"
   },
   "peerDependencies": {
     "react-native": ">=0.40.0"
   },
   "devDependencies": {
+    "@types/react-native": "^0.55.14",
     "react-native": "0.40.0",
     "tslint": "^5.10.0",
     "typescript": "^2.8.3"

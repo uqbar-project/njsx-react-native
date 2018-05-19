@@ -1,6 +1,7 @@
 # No-JSX React Native
 
 [![Build Status](https://travis-ci.org/uqbar-project/njsx-react-native.svg?branch=master)](https://travis-ci.org/uqbar-project/njsx-react-native)
+[![npm version](https://badge.fury.io/js/njsx-react-native.svg)](https://badge.fury.io/js/njsx-react-native)
 
 This library provides a basic configuration and default components to work with **No-JSX** in **React Native** projects.
 
