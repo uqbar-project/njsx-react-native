@@ -1,6 +1,6 @@
 {
   "name": "njsx-react-native",
-  "version": "1.0.0-SNAPSHOT",
+  "version": "1.0.1-SNAPSHOT",
   "description": "Basic configuration and default components to work with No-JSX in React Native projects For more information visit https://github.com/uqbar-project/njsx.",
   "repository": "https://github.com/uqbar-project/njsx-react-native",
   "author": "Nicolás Scarcella",
@@ -11,14 +11,19 @@
     "dist"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc && rm -f dist/*.test.* && cp package.json README.md dist/"
+    "build": "rm -rf dist && tsc",
+    "test": "echo ok",
+    "prepublishOnly": "yarn test && yarn build"
   },
   "dependencies": {
-    "njsx": "../njsx/dist",
-    "react-native": "^0.55.4"
+    "@types/react-native": "^0.55.14",
+    "njsx": "^3.0.1-SNAPSHOT"
+  },
+  "peerDependencies": {
+    "react-native": ">=0.40.0"
   },
   "devDependencies": {
-    "@types/react-native": "^0.55.14",
+    "react-native": "0.40.0",
     "tslint": "^5.10.0",
     "typescript": "^2.8.3"
   },
